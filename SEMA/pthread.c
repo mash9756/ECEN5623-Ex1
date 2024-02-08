@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <sched.h>
 #include <time.h>
+#include <semaphore.h>
+#include <stdint.h>
 
 #include <sys/types.h>
 #include <sys/sysinfo.h>
@@ -12,6 +14,7 @@
 
 #define COUNT       (1000)
 #define NUM_CPUS    (1)
+#define NUM_THREADS (2)
 
 #define NSEC_PER_SEC (1000000000)
 #define NSEC_PER_MSEC (1000000)
@@ -38,6 +41,10 @@ pthread_t dec_thread;
 threadParams_t dec_thread_params;
 pthread_attr_t dec_attr;
 struct sched_param dec_param;
+
+/* Semaphore declarations */
+sem_t semaphore;
+uint8_t active_threads = 0;
 
 int rt_max_prio = 0;
 int rt_min_prio = 0;
@@ -69,11 +76,17 @@ void *incThread(void *threadp)
     int i;
     threadParams_t *threadParams = (threadParams_t *)threadp;
 
+    printf("\nInc waiting for semaphore");
+    sem_wait(&semaphore);
     for(i = 0; i < COUNT; i++)
     {
         gsum = gsum + i;
         printf("\nIncrement thread idx = %d, gsum = %d", threadParams->threadIdx, gsum);
     }
+    active_threads--;
+    printf("\nInc completed");
+    sem_post(&semaphore);
+    return NULL;
 }
 
 void *decThread(void *threadp)
@@ -81,11 +94,17 @@ void *decThread(void *threadp)
     int i;
     threadParams_t *threadParams = (threadParams_t *)threadp;
 
+    printf("\nDec waiting for semaphore");
+    sem_wait(&semaphore);
     for(i = 0; i < COUNT; i++)
     {
         gsum = gsum - i;
         printf("\nDecrement thread idx = %d, gsum = %d", threadParams->threadIdx, gsum);
     }
+    active_threads--;
+    printf("\nDec completed");
+    sem_post(&semaphore);
+    return NULL;
 }
 
 /* configure main thread scheduling policy and parameters */
@@ -99,8 +118,8 @@ void set_main_sched(void) {
 
     print_scheduler();
     rc = sched_getparam(main_pid, &main_param);
-    main_param.sched_priority = rt_max_prio;
-    rc = sched_setscheduler(getpid(), SCHED_FIFO, &main_param);
+    //main_param.sched_priority = rt_max_prio;
+    rc = sched_setscheduler(getpid(), SCHED_OTHER, &main_param);
     if(rc < 0) {
         perror("main_param");
     }
@@ -133,10 +152,10 @@ void set_inc_sched(void) {
 
     pthread_attr_init(&inc_attr);
     pthread_attr_setinheritsched(&inc_attr, PTHREAD_EXPLICIT_SCHED);
-    pthread_attr_setschedpolicy(&inc_attr, SCHED_FIFO);
+    pthread_attr_setschedpolicy(&inc_attr, SCHED_OTHER);
     pthread_attr_setaffinity_np(&inc_attr, sizeof(cpu_set_t), &threadcpu);
 
-    inc_param.sched_priority=rt_max_prio - 1;
+    //inc_param.sched_priority=rt_max_prio - 1;
     pthread_attr_setschedparam(&inc_attr, &inc_param);
 
     inc_thread_params.threadIdx = 0;
@@ -153,10 +172,10 @@ void set_dec_sched(void) {
 
     pthread_attr_init(&dec_attr);
     pthread_attr_setinheritsched(&dec_attr, PTHREAD_EXPLICIT_SCHED);
-    pthread_attr_setschedpolicy(&dec_attr, SCHED_FIFO);
+    pthread_attr_setschedpolicy(&dec_attr, SCHED_OTHER);
     pthread_attr_setaffinity_np(&dec_attr, sizeof(cpu_set_t), &threadcpu);
 
-    dec_param.sched_priority = rt_max_prio - 2;
+    //dec_param.sched_priority = rt_max_prio - 2;
     pthread_attr_setschedparam(&dec_attr, &dec_param);
 
     dec_thread_params.threadIdx = 1;
@@ -174,17 +193,28 @@ int main (int argc, char *argv[])
     num_processors = NUM_CPUS;
     printf("\nRunning all threads on %d CPU core(s)", num_processors);
 
+    sem_init(&semaphore, 0, 0);
+   
     set_main_sched();
 
     set_inc_sched();
     pthread_create(&inc_thread, &inc_attr, incThread, (void *)&inc_thread_params);
+    active_threads++;
 
     set_dec_sched();
     pthread_create(&dec_thread, &dec_attr, decThread, (void *)&dec_thread_params);
+    active_threads++;
 
-/* wait for threads to complete */
-    pthread_join(inc_thread, NULL);
-    pthread_join(dec_thread, NULL);
+    sem_post(&semaphore);
+
+    pthread_detach(inc_thread);
+    pthread_detach(dec_thread);
+    
+    while(active_threads > 0){
+        sleep(1);
+    }
+
+    sem_destroy(&semaphore);
     
     printf("\n\nTEST COMPLETE\n");
 }
