@@ -5,7 +5,7 @@
  *          scheduled via SCHED_FIFO using POSIX pthread functions.
  *          The incThread runs to completion first, then the decThread runs
  *  
- *  @author Mark Sherman
+ *  @author Mark Sherman and Alexander Bork
  *  @date   02/08/2024
  *  
 */
@@ -24,9 +24,9 @@
 #define COUNT       (1000)
 #define NUM_CPUS    (1)
 
-#define NSEC_PER_SEC (1000000000)
-#define NSEC_PER_MSEC (1000000)
-#define NSEC_PER_MICROSEC (1000)
+#define NSEC_PER_SEC        (1000000000)
+#define NSEC_PER_MSEC       (1000000)
+#define NSEC_PER_MICROSEC   (1000)
 
 typedef struct
 {
@@ -221,14 +221,13 @@ void set_inc_sched(void) {
 */
     pthread_attr_setaffinity_np(&inc_attr, sizeof(cpu_set_t), &threadcpu);
 
-    inc_param.sched_priority=rt_max_prio - 1;
+    inc_param.sched_priority = rt_max_prio - 1;
+    inc_thread_params.threadIdx = 0;
 /**
  *  int pthread_attr_setschedparam(pthread_attr_t *__restrict__ __attr, const struct sched_param *__restrict__ __param)
  *      Set scheduling parameters in thread attribute according to given thread parameters.
 */
     pthread_attr_setschedparam(&inc_attr, &inc_param);
-
-    inc_thread_params.threadIdx = 0;
 }
 
 /**
@@ -255,9 +254,8 @@ void set_dec_sched(void) {
     pthread_attr_setaffinity_np(&dec_attr, sizeof(cpu_set_t), &threadcpu);
 
     dec_param.sched_priority = rt_max_prio - 2;
-    pthread_attr_setschedparam(&dec_attr, &dec_param);
-
     dec_thread_params.threadIdx = 1;
+    pthread_attr_setschedparam(&dec_attr, &dec_param);
 }
 
 /**
@@ -277,8 +275,8 @@ int main (int argc, char *argv[])
     printf("\nRunning all threads on %d CPU core(s)", num_processors);
 
     set_main_sched();
-
     set_inc_sched();
+    set_dec_sched();
 /**
  *  int pthread_create( pthread_t *__restrict__ __newthread, 
  *                      const pthread_attr_t *__restrict__ __attr, 
@@ -289,8 +287,6 @@ int main (int argc, char *argv[])
  *      with the passed thread attributes
 */
     pthread_create(&inc_thread, &inc_attr, incThread, (void *)&inc_thread_params);
-
-    set_dec_sched();
     pthread_create(&dec_thread, &dec_attr, decThread, (void *)&dec_thread_params);
 
 /* wait for threads to complete */
