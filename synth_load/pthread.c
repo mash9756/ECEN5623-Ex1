@@ -15,19 +15,15 @@
 
 #define NUM_CPUS              (1)
 #define FIB_LIMIT_FOR_32_BIT  (47)
-#define FIB10_REQ_ITERATIONS  (2000000)
-#define FIB20_REQ_ITERATIONS  (3805000)
+
+#define FIB10_REQ_ITERATIONS  (6250000)
+#define FIB20_REQ_ITERATIONS  (11000000)
 
 #define NSEC_PER_SEC          (1000000000)
 #define NSEC_PER_MSEC         (1000000)
 #define NSEC_PER_MICROSEC     (1000)
 
 #define MSEC_PER_SEC          (1000)
-
-unsigned int idx = 0, jdx = 1;
-unsigned int seqIterations = 47;
-unsigned int reqIterations = 10000000;
-volatile unsigned int fib = 0, fib0 = 0, fib1 = 1;
 
 #define FIB_TEST(seqCnt, iterCnt)                 \
     for(idx = 0; idx < iterCnt; idx++) {          \
@@ -158,25 +154,33 @@ int sleep_ms(int ms) {
 
 void *fib10_thread_func(void *threadp)
 {
+    unsigned int idx = 0, jdx = 1;
+    unsigned int seqIterations = FIB_LIMIT_FOR_32_BIT;
+    volatile unsigned int fib = 0, fib0 = 0, fib1 = 1;
+
     while(run_fib10) {
         sem_wait(&fib10_sema);
-        FIB_TEST(FIB_LIMIT_FOR_32_BIT, FIB10_REQ_ITERATIONS);
+        FIB_TEST(seqIterations, FIB10_REQ_ITERATIONS);
         clock_gettime(CLOCK_REALTIME, &fib10_finish);
 
         delta_t(&fib10_finish, &start, &fib10_dt);
-        printf("\nfib10 timestamp %i msec\n", (fib10_dt.tv_nsec / NSEC_PER_MSEC));
+        printf("\nfib10 timestamp %ld msec\n", (fib10_dt.tv_nsec / NSEC_PER_MSEC));
     }
 }
 
 void *fib20_thread_func(void *threadp)
 {
+    unsigned int idx = 0, jdx = 1;
+    unsigned int seqIterations = FIB_LIMIT_FOR_32_BIT;
+    volatile unsigned int fib = 0, fib0 = 0, fib1 = 1;
+
     while(run_fib20) {
         sem_wait(&fib20_sema);
-        FIB_TEST(FIB_LIMIT_FOR_32_BIT, FIB20_REQ_ITERATIONS);
+        FIB_TEST(seqIterations, FIB20_REQ_ITERATIONS);
         clock_gettime(CLOCK_REALTIME, &fib20_finish);
 
         delta_t(&fib20_finish, &start, &fib20_dt);
-        printf("\nfib20 timestamp %i msec\n", (fib20_dt.tv_nsec / NSEC_PER_MSEC)); 
+        printf("\nfib20 timestamp %ld msec\n", (fib20_dt.tv_nsec / NSEC_PER_MSEC)); 
     }
 }
 
@@ -257,8 +261,8 @@ int main (int argc, char *argv[]) {
     num_processors = NUM_CPUS;
     printf("\nRunning all threads on %d CPU core(s)", num_processors);
 
-    sem_init(&fib10_sema, 0, 1);
-    sem_init(&fib20_sema, 0, 1);
+    sem_init(&fib10_sema, 0, 0);
+    sem_init(&fib20_sema, 0, 0);
    
     set_main_sched();
     set_fib10_sched();
@@ -268,30 +272,35 @@ int main (int argc, char *argv[]) {
     pthread_attr_setschedparam(&fib10_attr, &fib10_param);
     pthread_attr_setschedparam(&main_attr, &main_param);
 
-    clock_gettime(CLOCK_REALTIME, &start);
-
-/* Critical instant, start both threads */
     pthread_create(&fib10_thread, &fib10_attr, fib10_thread_func, (void *)&fib10_thread_params);
     pthread_create(&fib20_thread, &fib20_attr, fib20_thread_func, (void *)&fib20_thread_params);
 
-/* sleep 20ms, first fib10 period */
+/* Critical instant, start both threads */
+    clock_gettime(CLOCK_REALTIME, &start);
+    sem_post(&fib10_sema);
+    sem_post(&fib20_sema);
+
+/* sleep 20ms, fib10 period */
     sleep_ms(20);
 /* start fib10 */
     sem_post(&fib10_sema);
-/* sleep 20ms, second fib10 period */
+/* sleep 20ms, fib10 period */
     sleep_ms(20);
 /* start fib10 */
     sem_post(&fib10_sema);
 /* sleep 10ms, first fib20 period (20 + 20 + 10 = 50ms)*/
     sleep_ms(10);
-/* fib20 deadline! */
+/* stop fib20 execution after next run */
     run_fib20 = false;
-/* start fib10*/
+/* start fib10 */
     sem_post(&fib20_sema);
 /* sleep 10ms, rest of fib10 period (10 + 10 = 20ms)*/
     sleep_ms(10);
+/* start fib10 */
     sem_post(&fib10_sema);
+/* sleep 20ms, fib10 period */
     sleep_ms(20);
+/* stop fib10 execution after next run */
     run_fib10 = false;
     sem_post(&fib10_sema);
     sleep_ms(20);
@@ -302,10 +311,10 @@ int main (int argc, char *argv[]) {
     pthread_join(fib20_thread, NULL);
 
     delta_t(&finish, &start, &dt);
-    printf("\nLCM Period ran for %i msec\n", (dt.tv_nsec / NSEC_PER_MSEC)); 
+    printf("\nLCM Period ran for %ld msec\n", (dt.tv_nsec / NSEC_PER_MSEC)); 
 
     sem_destroy(&fib10_sema);
     sem_destroy(&fib20_sema);
     
-  printf("\n\nTEST COMPLETE\n");
+    printf("\n\nTEST COMPLETE\n");
 }
