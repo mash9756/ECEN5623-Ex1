@@ -26,8 +26,8 @@
 #define NUM_CPUS                (1)
 #define FIB_LIMIT_FOR_32_BIT    (47)
 
-#define FIB10_ITERATIONS        (6250000)
-#define FIB20_ITERATIONS        (11000000)
+#define FIB10_ITERATIONS        (5900000)
+#define FIB20_ITERATIONS        (11600000)
 
 #define NSEC_PER_SEC            (1000000000)
 #define NSEC_PER_MSEC           (1000000)
@@ -119,6 +119,10 @@ void print_scheduler(void)
    }
 }
 
+double timestamp(struct timespec *timestamp) {
+    return (double)(timestamp->tv_sec) + (double)((double)timestamp->tv_nsec / NSEC_PER_MSEC);
+}
+
 int delta_t(struct timespec *stop, struct timespec *start, struct timespec *delta_t)
 {
   int dt_sec=stop->tv_sec - start->tv_sec;
@@ -178,8 +182,8 @@ void *fib10_thread_func(void *threadp)
         clock_gettime(CLOCK_REALTIME, &fib10_finish);
 
         delta_t(&fib10_finish, &start, &fib10_dt);
-        syslog (LOG_NOTICE, "\tfib10 timestamp %ld msec\n", (fib10_dt.tv_nsec / NSEC_PER_MSEC));
-        //printf("\nfib10 timestamp %ld msec\n", (fib10_dt.tv_nsec / NSEC_PER_MSEC));
+        syslog(LOG_NOTICE, "\tfib10 timestamp %lf msec\n", timestamp(&fib10_dt));
+        //printf("\nfib10 timestamp %lf msec\n", timestamp(&fib10_dt));
     }
 }
 
@@ -191,8 +195,8 @@ void *fib20_thread_func(void *threadp)
         clock_gettime(CLOCK_REALTIME, &fib20_finish);
 
         delta_t(&fib20_finish, &start, &fib20_dt);
-        syslog (LOG_NOTICE, "\tfib20 timestamp %ld msec\n", (fib20_dt.tv_nsec / NSEC_PER_MSEC));
-        //printf("\nfib20 timestamp %ld msec\n", (fib20_dt.tv_nsec / NSEC_PER_MSEC)); 
+        syslog (LOG_NOTICE, "\tfib20 timestamp %lf msec\n", timestamp(&fib20_dt));
+        //printf("\nfib20 timestamp %lf msec\n", timestamp(&fib20_dt));
     }
 }
 
@@ -323,8 +327,8 @@ int main (int argc, char *argv[]) {
     pthread_join(fib20_thread, NULL);
 
     delta_t(&finish, &start, &dt);
-    syslog(LOG_NOTICE,"\tLCM Period ran for %ld msec\n", (dt.tv_nsec / NSEC_PER_MSEC));
-    //printf("\nLCM Period ran for %ld msec\n", (dt.tv_nsec / NSEC_PER_MSEC)); 
+    syslog(LOG_NOTICE,"\tLCM Period ran for %lf msec\n", timestamp(&dt));
+    //printf("\nLCM Period ran for %lf msec\n", timestamp(&dt)); 
 
     sem_destroy(&fib10_sema);
     sem_destroy(&fib20_sema);
