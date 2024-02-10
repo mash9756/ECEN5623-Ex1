@@ -17,6 +17,7 @@
 #include <semaphore.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <syslog.h>
 
 #include <sys/types.h>
 #include <sys/sysinfo.h>
@@ -177,7 +178,8 @@ void *fib10_thread_func(void *threadp)
         clock_gettime(CLOCK_REALTIME, &fib10_finish);
 
         delta_t(&fib10_finish, &start, &fib10_dt);
-        printf("\nfib10 timestamp %ld msec\n", (fib10_dt.tv_nsec / NSEC_PER_MSEC));
+        syslog (LOG_NOTICE, "\tfib10 timestamp %ld msec\n", (fib10_dt.tv_nsec / NSEC_PER_MSEC));
+        //printf("\nfib10 timestamp %ld msec\n", (fib10_dt.tv_nsec / NSEC_PER_MSEC));
     }
 }
 
@@ -189,7 +191,8 @@ void *fib20_thread_func(void *threadp)
         clock_gettime(CLOCK_REALTIME, &fib20_finish);
 
         delta_t(&fib20_finish, &start, &fib20_dt);
-        printf("\nfib20 timestamp %ld msec\n", (fib20_dt.tv_nsec / NSEC_PER_MSEC)); 
+        syslog (LOG_NOTICE, "\tfib20 timestamp %ld msec\n", (fib20_dt.tv_nsec / NSEC_PER_MSEC));
+        //printf("\nfib20 timestamp %ld msec\n", (fib20_dt.tv_nsec / NSEC_PER_MSEC)); 
     }
 }
 
@@ -320,7 +323,8 @@ int main (int argc, char *argv[]) {
     pthread_join(fib20_thread, NULL);
 
     delta_t(&finish, &start, &dt);
-    printf("\nLCM Period ran for %ld msec\n", (dt.tv_nsec / NSEC_PER_MSEC)); 
+    syslog(LOG_NOTICE,"\tLCM Period ran for %ld msec\n", (dt.tv_nsec / NSEC_PER_MSEC));
+    //printf("\nLCM Period ran for %ld msec\n", (dt.tv_nsec / NSEC_PER_MSEC)); 
 
     sem_destroy(&fib10_sema);
     sem_destroy(&fib20_sema);
