@@ -1,10 +1,18 @@
 
 /**
- *  @brief  CU Boulder ECEN 5623 Exercise 1, Part 4(d)
- *          code referenced from Example Report
+ *  @name   CU Boulder ECEN 5623 Exercise 1, Part 4(d)
+ * 
+ *  @brief  Creates two threads that burn CPU cycles running the Fibonacci sequence
+ *          Used to emulate a two-thread system with the following parameters
+ * 
+ *          S1 = fib10, C1 = 10msec, T1 = 20 msec, D1 = T1 
+ *                              and 
+ *          S2 = fib20, C1 = 20msec, T2 = 50 msec, D2 = T2
+ * 
+ *          code referenced from Example Report provided with assignment
  * 
  *  @author Mark Sherman and Alexander Bork
- *  @date   02/09/2024
+ *  @date   02/10/2024
  * 
 */
 
@@ -119,8 +127,9 @@ void print_scheduler(void)
    }
 }
 
-double timestamp(struct timespec *timestamp) {
-    return (double)(timestamp->tv_sec) + (double)((double)timestamp->tv_nsec / NSEC_PER_MSEC);
+/* calculates a duration in ms with added precision */
+double timestamp(struct timespec *duration) {
+    return (double)(duration->tv_sec) + (double)((double)duration->tv_nsec / NSEC_PER_MSEC);
 }
 
 int delta_t(struct timespec *stop, struct timespec *start, struct timespec *delta_t)
@@ -158,6 +167,7 @@ int delta_t(struct timespec *stop, struct timespec *start, struct timespec *delt
   return(1);
 }
 
+/* simple sleep function with ms parameter for ease of use */
 int sleep_ms(int ms) {
     struct timespec req_time;
     struct timespec rem_time;

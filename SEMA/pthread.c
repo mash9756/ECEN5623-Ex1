@@ -1,3 +1,14 @@
+/**
+ *  incdecthread - SEMA
+ * 
+ *  @brief  This is a short program that creates 2 threads,
+ *          scheduled via SCHED_OTHER using POSIX pthread functions.
+ *          Using 2 semaphores, the incThread runs to completion first, then the decThread runs
+ *  
+ *  @author Mark Sherman and Alexander Bork
+ *  @date   02/10/2024
+ *  
+*/
 
 #define _GNU_SOURCE
 #include <pthread.h>
@@ -46,7 +57,7 @@ struct sched_param dec_param;
  * Semaphore declarations 
  *      increment thread waits for inc_sema to post, then runs
  *      once completed, it posts the dec_sema, which allows the decrement thread to run
- *      main thread sleeps until both threads complete
+ *      main thread sleeps until both threads are complete
 */
 sem_t inc_sema;
 sem_t dec_sema;

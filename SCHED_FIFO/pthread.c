@@ -6,7 +6,7 @@
  *          The incThread runs to completion first, then the decThread runs
  *  
  *  @author Mark Sherman and Alexander Bork
- *  @date   02/08/2024
+ *  @date   02/10/2024
  *  
 */
 
@@ -127,7 +127,7 @@ void *decThread(void *threadp)
  *  @name   set_main_sched
  *  @brief  configure main thread scheduling policy and parameters
  *          sets the scheduling policy to SCHED_FIFO
- *          sets main priority to MAX (99)
+ *          sets thread priority to MAX (99)
  * 
  *  @param  VOID
  * 
@@ -181,10 +181,10 @@ void set_main_sched(void) {
 }
 
 /**
- *  @name   set_dec_sched
- *  @brief  configure decrement thread scheduling policy and parameters
+ *  @name   set_inc_sched
+ *  @brief  configure increment thread scheduling policy and parameters
  *          sets the scheduling policy to SCHED_FIFO
- *          sets main priority to 98
+ *          sets thread priority to 98
  * 
  *  @param  VOID
  * 
@@ -234,7 +234,7 @@ void set_inc_sched(void) {
  *  @name   set_dec_sched
  *  @brief  configure decrement thread scheduling policy and parameters
  *          sets the scheduling policy to SCHED_FIFO
- *          sets main priority to 97
+ *          sets thread priority to 97
  * 
  *  @param  VOID
  * 
